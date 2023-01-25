@@ -57,7 +57,7 @@ DIND_MOUNTS="\
 export PODMAN_USERNS="keep-id"
 
 
-DOCKER=$(which podman || which docker)
+DOCKER=$(which podman 2> /dev/null || which docker 2> /dev/null)
 
 $DOCKER run --rm -ti \
   --gpus=all \
