@@ -5,6 +5,7 @@
 
 : "${IMAGE:?Need to set image}"
 
+ABS_HOME=$(readlink -f $HOME)
 PWD=`pwd`
 
 
@@ -71,6 +72,7 @@ $DOCKER run --rm -ti \
   -e DISPLAY=$DISPLAY \
   $PACKAGE_DIRS \
   $DIND_MOUNTS \
+  -v $ABS_HOME:$ABS_HOME \
   -v $HOME:$HOME \
   --entrypoint=bash \
   $IMAGE \
