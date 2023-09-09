@@ -19,6 +19,8 @@
 # Example usage
 # IMAGE=pytorch_environment:latest ./env.sh bash
 
+set -e
+
 : "${IMAGE:?Need to set image}"
 
 ABS_HOME=$(readlink -f $HOME)
@@ -47,16 +49,25 @@ PACKAGE_DIRS="\
 # For some reason the dind docker binary doesn't have glibc dependency issues
 # that I was getting when using the local docker binary.
 SCRIPT_DIR=$(dirname $(readlink -f $0))
-ls $SCRIPT_DIR/docker &> /dev/null || (which docker && (
+ls $SCRIPT_DIR/docker &> /dev/null && ls $SCRIPT_DIR/docker-compose &> /dev/null || (which docker && (
 docker pull docker:dind
 docker run -v $SCRIPT_DIR:/tmp --rm --entrypoint cp docker:dind /usr/local/bin/docker /tmp/docker
+docker run -v $SCRIPT_DIR:/tmp --rm --entrypoint cp docker:dind /usr/local/libexec/docker/cli-plugins/docker-compose /tmp/docker-compose
 ))
 # Mount these inside the container so that we can spin up docker containers while
 # inside the container.
 DIND_MOUNTS="\
   `ls /var/run/docker.sock | xargs -I{} echo '-v {}:{}'` \
   `(ls $SCRIPT_DIR/docker &> /dev/null) && (readlink -f $SCRIPT_DIR/docker | xargs -I{} echo '-v {}:/usr/bin/docker')` \
+  `(ls $SCRIPT_DIR/docker-compose &> /dev/null) && (readlink -f $SCRIPT_DIR/docker-compose | xargs -I{} echo '-v {}:/usr/libexec/docker/cli-plugins/docker-compose')` \
 "
+
+# Set the --gpus=all flag if nvidia-smi is present.
+# TODO: Use a more general gpu detection mechanism in the future for other gpu vendors.
+GPUS_FLAG=$(which nvidia-smi &> /dev/null && echo '--gpus=all' || echo '')
+
+# Get the `which` binary to pass through to the container since not all images will have `which` installed.
+WHICH_BINARY=$(which which)
 
 
 # podman specific notes:
@@ -73,11 +84,10 @@ DIND_MOUNTS="\
 #     I can also just set the container /dev/shm to be unlimited instead as another solution.
 export PODMAN_USERNS="keep-id"
 
-
 DOCKER=$(which podman 2> /dev/null || which docker 2> /dev/null)
 
 $DOCKER run --rm -ti \
-  --gpus=all \
+  $GPUS_FLAG \
   --net=host \
   -u `id -u`:`id -g` \
   `id -G | sed 's/\s\?\([0-9]*\)/--group-add \1 /g'` \
@@ -86,6 +96,7 @@ $DOCKER run --rm -ti \
   --shm-size=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -e DISPLAY=$DISPLAY \
+  -v $WHICH_BINARY:$WHICH_BINARY \
   $PACKAGE_DIRS \
   $DIND_MOUNTS \
   -v $ABS_HOME:$ABS_HOME \
