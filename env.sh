@@ -62,9 +62,8 @@ DIND_MOUNTS="\
   `(ls $SCRIPT_DIR/docker-compose &> /dev/null) && (readlink -f $SCRIPT_DIR/docker-compose | xargs -I{} echo '-v {}:/usr/libexec/docker/cli-plugins/docker-compose')` \
 "
 
-# Set the --gpus=all flag if nvidia-smi is present.
-# TODO: Use a more general gpu detection mechanism in the future for other gpu vendors.
-GPUS_FLAG=$(which nvidia-smi &> /dev/null && echo '--gpus=all' || echo '')
+# Just attempt to run the hello-world image with --gpus=all to see if it works and only use the flag if it does work
+GPUS_FLAG=$(docker run --gpus=all --rm hello-world &> /dev/null && echo '--gpus=all' || echo '')
 
 # Get the `which` binary to pass through to the container since not all images will have `which` installed.
 WHICH_BINARY=$(which which)
