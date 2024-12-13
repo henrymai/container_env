@@ -95,6 +95,7 @@ $DOCKER run --rm -ti \
   --shm-size=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -e DISPLAY=$DISPLAY \
+  -e HOME=$HOME \
   -v $WHICH_BINARY:$WHICH_BINARY \
   $PACKAGE_DIRS \
   $DIND_MOUNTS \
