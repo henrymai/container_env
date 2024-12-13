@@ -86,6 +86,7 @@ export PODMAN_USERNS="keep-id"
 DOCKER=$(which podman 2> /dev/null || which docker 2> /dev/null)
 
 $DOCKER run --rm -ti \
+  $EXTRA_DOCKER_FLAGS \
   $GPUS_FLAG \
   --net=host \
   -u `id -u`:`id -g` \
