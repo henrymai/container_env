@@ -22,7 +22,7 @@ set -e
 : "${IMAGE:?Need to set image}"
 
 ABS_HOME=$(readlink -f $HOME)
-PWD=`pwd`
+HOST_PWD=`pwd`
 
 
 # Use the image name as a prefix for any directories we want to offset and isolate from
@@ -75,23 +75,9 @@ if [ -z "${TTY_FLAGS+x}" ]; then
   fi
 fi
 
-# podman specific notes:
-#
-# Setting the environment variable `PODMAN_USERNS="keep-id"` will cause `podman run` to have this argument: `--userns=keep-id`
-#
-# `--userns=keep-id` is necessary for `podman` to act like the original user correctly.
-#
-# `--userns=keep-id` won't work with `docker` and isn't actually necessary for `docker`, the `PODMAN_USERNS` environment variable
-#  will just be ignored by `docker`.
-#
-# `-v /dev/shm:/dev/shm` breaks for podman once `--userns=keep-id` is used.
-#     I was originally mounting the /dev/shm inside mostly to have the same memory limit as the host, but
-#     I can also just set the container /dev/shm to be unlimited instead as another solution.
-export PODMAN_USERNS="keep-id"
+REMAP_PROFILE_MOUNTS="$(ls $HOME/.profile | xargs -I{} echo '-v {}:/tmp/container_env/user_profile')"
 
-DOCKER=$(which podman 2> /dev/null || which docker 2> /dev/null)
-
-$DOCKER run --rm \
+docker run --rm \
   $TTY_FLAGS \
   $EXTRA_DOCKER_FLAGS \
   $GPUS_FLAG \
@@ -103,7 +89,11 @@ $DOCKER run --rm \
   --shm-size=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -e DISPLAY=$DISPLAY \
+  $REMAP_PROFILE_MOUNTS \
+  -e HOST_PWD=$HOST_PWD \
   -e HOME=$HOME \
+  -v $SCRIPT_DIR/container_env_profile:$HOME/.profile \
+  -v $SCRIPT_DIR:/tmp/container_env \
   -v $WHICH_BINARY:$WHICH_BINARY \
   $PACKAGE_DIRS \
   $DIND_MOUNTS \
@@ -111,4 +101,4 @@ $DOCKER run --rm \
   -v $HOME:$HOME \
   --entrypoint=bash \
   $IMAGE \
-  -c "cd $PWD; $*"
+  --login /tmp/container_env/startup.sh "$@"

@@ -24,11 +24,16 @@ set -e
 
 echo "Note: You are running on macOS."
 echo
+echo "Important Notice:"
+echo "  - Unlike the Linux version, user profiles (e.g., ~/.bash_profile, ~/.profile) are not loaded or merged into the container environment."
+echo "  - This means that any environment variables, aliases, or functions defined in your macOS shell profiles will not be available inside the container."
+echo "  - To customize your container environment, consider modifying the container's initialization scripts or environment variables directly."
+echo
 echo "Networking:"
 echo "  - '--net=host' is not supported by Docker Desktop on macOS."
 echo "  - To access a server running inside this container environment from your host machine,"
 echo "    you must publish ports. For example:"
-echo "      EXTRA_DOCKER_FLAGS='-p 8080:8080' IMAGE=$IMAGE ./$(basename $0)"
+echo "      EXTRA_DOCKER_FLAGS='-p 8080:8080' IMAGE=$IMAGE $0 $@"
 echo "    Then connect to 'localhost:8080' on your Mac to reach the service."
 echo
 echo "GUI Applications:"
@@ -43,7 +48,7 @@ echo
 # Resolve paths without readlink -f
 ABS_HOME="$(cd "$HOME" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PWD="$(pwd)"
+HOST_PWD="$(pwd)"
 
 # Convert image name to prefix by replacing ":" with "/"
 PREFIX="${IMAGE/:/\/}"
@@ -102,7 +107,10 @@ docker run --rm \
   -v /etc/group:/etc/group:ro \
   --shm-size=0 \
   -e DISPLAY=$DISPLAY \
+  -e HOST_PWD=$HOST_PWD \
   -e HOME=$HOME \
+  -v $SCRIPT_DIR/container_env_profile:$HOME/.profile \
+  -v $SCRIPT_DIR:/tmp/container_env \
   -v "$WHICH_BINARY":/usr/bin/which \
   $PACKAGE_DIRS \
   $DIND_MOUNTS \
@@ -110,4 +118,4 @@ docker run --rm \
   -v "$HOME":"$HOME" \
   --entrypoint=bash \
   "$IMAGE" \
-  -c "cd $PWD; $*"
+  --login /tmp/container_env/startup.sh "$@"
