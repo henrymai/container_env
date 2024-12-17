@@ -4,7 +4,7 @@
 PATH_CONTAINER="$PATH"
 
 # Source the user's profile if it exists.
-[ -f "/tmp/container_env/user_profile" ] && source "/tmp/container_env/user_profile"
+[ -f "/tmp/container_env_runtime/user_profile" ] && source "/tmp/container_env_runtime/user_profile"
 
 # Check if PATH_CONTAINER is a substring of PATH.
 # If not concatenate PATH_CONTAINER and PATH so that the PATH setup by the

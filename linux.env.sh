@@ -75,7 +75,7 @@ if [ -z "${TTY_FLAGS+x}" ]; then
   fi
 fi
 
-REMAP_PROFILE_MOUNTS="$(ls $HOME/.profile | xargs -I{} echo '-v {}:/tmp/container_env/user_profile')"
+REMAP_PROFILE_MOUNTS="$(ls $HOME/.profile | xargs -I{} echo '-v {}:/tmp/container_env_runtime/user_profile')"
 
 docker run --rm \
   $TTY_FLAGS \
